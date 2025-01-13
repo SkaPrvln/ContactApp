@@ -109,6 +109,11 @@ class MainForm(QMainWindow):
 
         layout.addLayout(right_panel)
 
+        #Кнопка сохранения для сохранения изменений на панели справо
+        self.save_button = QPushButton("Save", self)
+        self.save_button.clicked.connect(self.save_current_contact)
+        right_panel.addRow("", self.save_button)
+
     def load_contacts(self):
         """Загрузка контактов из файла JSON"""
         try:
@@ -135,7 +140,7 @@ class MainForm(QMainWindow):
         """Добавление нового контакта"""
         try:
             # Создаем форму для добавления контакта
-            form = EditContactForm(self)
+            form = EditContactForm(parent=self)
 
             # Если пользователь нажимает OK, получаем данные контакта
             if form.exec_() == QDialog.Accepted:
@@ -230,6 +235,33 @@ class MainForm(QMainWindow):
     def show_about_dialog(self):
         """Открываем окно About"""
         QMessageBox.about(self, "About ContactsApp", "ContactsApp v1.0\nManage your contacts with ease.")
+
+    def save_current_contact(self):
+        selected_item = self.contacts_list.currentItem()
+        if not selected_item:
+            return
+
+        contact = self.contact_manager.get_contact_by_name(selected_item.text())
+        if not contact:
+            return
+
+        try:
+            # Применяем валидацию из вашего класса Contact
+            contact.last_name = self.surname_label.text()
+            contact.first_name = self.name_label.text()
+            # телефон, дата, имейл и т.д. тоже через сеттеры или через новый Contact(**updated_data)
+            contact.phone = contact.validate_phone(self.phone_label.text())
+            contact.birth_date = contact.validate_birth_date(
+                self.birthday_label.date().toString("yyyy-MM-dd")
+            )
+            contact.email = contact.validate_email(self.email_label.text())
+            contact.vk_id = self.vk_label.text()
+
+            # Сохраняем
+            self.save_contacts()
+            QMessageBox.information(self, "Success", "Contact updated successfully.")
+        except ValueError as e:
+            QMessageBox.warning(self, "Invalid Input", str(e))
 
 
 if __name__ == "__main__":
